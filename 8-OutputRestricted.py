@@ -1,4 +1,4 @@
-class Deque:
+class OutputRestrictedQueue:
     def __init__(self, size):
         self.queue = [None] * size
         self.front = -1
@@ -24,7 +24,7 @@ class Deque:
                 self.front -= 1
             self.queue[self.front] = value
     
-    def dequeue_front(self):
+    def dequeue(self):
         if self.front == -1:
             print("Queue is empty")
         else:
@@ -35,28 +35,11 @@ class Deque:
                 self.front = self.rear = -1
             return value
     
-    def dequeue_rear(self):
-        if self.rear == -1:
-            print("Queue is empty")
-        else:
-            value = self.queue[self.rear]
-            self.queue[self.rear] = None
-            self.rear -= 1
-            if self.rear < self.front:
-                self.front = self.rear = -1
-            return value
-    
-    def peek_front(self):
+    def peek(self):
         if self.isEmpty():
             print("Queue is empty")
             return None
         return self.queue[self.front]
-    
-    def peek_rear(self):
-        if self.isEmpty():
-            print("Queue is empty")
-            return None
-        return self.queue[self.rear]
     
     def isEmpty(self):
         return self.front == -1 or self.front > self.rear
@@ -76,16 +59,14 @@ class Deque:
             print("Queue elements:", self.queue[self.front:self.rear + 1])
 
 
-q = Deque(5)
+q = OutputRestrictedQueue(5)
 q.enqueue_rear(10)
 q.enqueue_rear(20)
 q.enqueue_front(5)
 q.enqueue_rear(30)
 q.enqueue_rear(40)
 q.display()
-q.dequeue_front()
-q.display()
-q.dequeue_rear()
+q.dequeue()
 q.display()
 q.enqueue_front(2)
 q.display()
