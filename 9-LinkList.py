@@ -72,15 +72,3 @@ ll.deletenode(20)
 print("Linked List after deleting node with value 20:")
 ll.display()
 
-
-
-
-
-
-
-
-
-
-
-
-
