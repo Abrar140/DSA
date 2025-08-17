@@ -5,10 +5,12 @@ from collections import deque
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 import matplotlib.patches as mpatches
+from itertools import combinations
 
 #creating Dubai City grid
 class DubaiCityGrid:
-  # Define  spot type with symbol and color  and a mark
+
+   # Define  spot type with symbol and color  and a mark
     SPOT_TYPES = {
         'landmark': {'symbol': 'L', 'color': 'red', 'marker': 's'},
         'beach': {'symbol': 'B', 'color': 'cyan', 'marker': '^'},
@@ -17,7 +19,8 @@ class DubaiCityGrid:
         'hotel': {'symbol': 'H', 'color': 'blue', 'marker': 'D'},
         'empty': {'symbol': '.', 'color': 'lightgray', 'marker': '.'}
     }
-    #initialize  of row 10  and collmn 10
+
+   #initialize  of row 10  and collmn 10
     def __init__(self, rows=10, cols=10):
         self.rows = rows
         self.cols = cols
@@ -26,8 +29,7 @@ class DubaiCityGrid:
         self.initialize_tourist_spots()
         self.tourist_spot_positions = list(self.tourist_spots.keys())
         self.num_spots = len(self.tourist_spot_positions)
-
-    #initalize diffrent tourist spots  with type and position
+#initalize diffrent tourist spots  with type and position
     def initialize_tourist_spots(self):
         spots = [
             {"name": "Burj Khalifa", "type": "landmark", "description": "World's tallest building", "position": (4, 5)},
@@ -45,7 +47,8 @@ class DubaiCityGrid:
             {"name": "Atlantis The Palm", "type": "hotel", "description": "Luxury resort on Palm Jumeirah", "position": (7, 0)},
             {"name": "Jumeirah Beach Hotel", "type": "hotel", "description": "Wave-shaped beachfront hotel", "position": (9, 1)},
         ]
-        # Placement of spots on specific position
+
+         # Placement of spots on specific position
         for spot in spots:
             row, col = spot["position"]
             if 0 <= row < self.rows and 0 <= col < self.cols:
@@ -59,19 +62,15 @@ class DubaiCityGrid:
     def get_spot_info(self, row, col):
         return self.tourist_spots.get((row, col), None)
 
-    # creating viual representation of graph
+     # creating viual representation of graph
     def visualize_grid(self, path=None, title="Dubai Tourist Map (10x10 Grid)"):
         fig, ax = plt.subplots(figsize=(12, 10))
-        # Draw grid lines
         for i in range(self.rows + 1):
             ax.axhline(i, color='gray', linestyle='-', alpha=0.3)
         for j in range(self.cols + 1):
             ax.axvline(j, color='gray', linestyle='-', alpha=0.3)
-             # Plot each spot with their color and symbol
         legend_handles = []
         spot_types_plotted = set()
-
-          # Add spots to the plot
         for (row, col), spot in self.tourist_spots.items():
             spot_type = spot['type']
             marker = self.SPOT_TYPES[spot_type]['marker']
@@ -112,6 +111,7 @@ class DubaiCityGrid:
         plt.close(fig)
         print(f"Map saved as {filename}")
 
+# show map
     def show_map(self):
         fig, ax = self.visualize_grid()
         plt.show()
@@ -131,85 +131,113 @@ class DubaiCityGrid:
                 spot_list.append(f"  {spot['name']} at position ({row}, {col}): {spot['description']}")
         return "\n".join(spot_list)
 
-    #implementing A* search
-    def find_optimal_route_astar(self):
-        start = (0, 0)
-        initial_bitmask = 0
-        if start in self.tourist_spots:
-            index = self.tourist_spot_positions.index(start)
-            initial_bitmask |= (1 << index)
-        target_bitmask = (1 << self.num_spots) - 1
-        heap = []
-        initial_h = self._calculate_heuristic(start, initial_bitmask)
-        heapq.heappush(heap, (initial_h, 0, start, initial_bitmask, [start]))
-        visited = {}
-        while heap:
-            priority, cost, current_pos, bitmask, path = heapq.heappop(heap)
-            if bitmask == target_bitmask:
-                return path
-            if (current_pos, bitmask) in visited and visited.get((current_pos, bitmask), float('inf')) <= cost:
-                continue
-            visited[(current_pos, bitmask)] = cost
+    def dfs_shortest_path(self, start_pos, end_pos):
+        if start_pos == end_pos:
+            return [start_pos]
+        queue = deque()
+        queue.append( (start_pos, [start_pos]) )
+        visited = set()
+        visited.add(start_pos)
+        while queue:
+            current_pos, path = queue.popleft()
             for dx, dy in [ (-1,0), (1,0), (0,-1), (0,1) ]:
                 new_row = current_pos[0] + dx
                 new_col = current_pos[1] + dy
-                if 0 <= new_row < self.rows and 0 <= new_col < self.cols:
-                    new_pos = (new_row, new_col)
-                    new_cost = cost + 1
-                    new_bitmask = bitmask
-                    if new_pos in self.tourist_spot_positions:
-                        index = self.tourist_spot_positions.index(new_pos)
-                        if not (new_bitmask & (1 << index)):
-                            new_bitmask |= (1 << index)
-                    new_h = self._calculate_heuristic(new_pos, new_bitmask)
-                    new_priority = new_cost + new_h
-                    if (new_pos, new_bitmask) not in visited or new_cost < visited.get((new_pos, new_bitmask), float('inf')):
-                        new_path = path + [new_pos]
-                        heapq.heappush(heap, (new_priority, new_cost, new_pos, new_bitmask, new_path))
-        return None
-  #implementaion of Uninformed Search DFS
-    def find_optimal_route_dfs(self):
-     start = (0, 0)
-     initial_bitmask = 0
-     if start in self.tourist_spots:
-        index = self.tourist_spot_positions.index(start)
-        initial_bitmask |= (1 << index)
-     target_bitmask = (1 << self.num_spots) - 1
-     stack = [(start, initial_bitmask, [start])]
-     visited = set()
-     visited.add((start, initial_bitmask))
-     while stack:
-        current_pos, bitmask, path = stack.pop()
-        if bitmask == target_bitmask:
-            return path
-        for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
-            new_row = current_pos[0] + dx
-            new_col = current_pos[1] + dy
-            if 0 <= new_row < self.rows and 0 <= new_col < self.cols:
                 new_pos = (new_row, new_col)
-                new_bitmask = bitmask
-                if new_pos in self.tourist_spot_positions:
-                    index = self.tourist_spot_positions.index(new_pos)
-                    if not (new_bitmask & (1 << index)):
-                        new_bitmask |= (1 << index)
-                if (new_pos, new_bitmask) not in visited:
-                    visited.add((new_pos, new_bitmask))
-                    new_path = path + [new_pos]
-                    stack.append((new_pos, new_bitmask, new_path))
-     return None
+                if 0 <= new_row < self.rows and 0 <= new_col < self.cols:
+                    if new_pos == end_pos:
+                        return path + [new_pos]
+                    if new_pos not in visited:
+                        visited.add(new_pos)
+                        queue.append( (new_pos, path + [new_pos]) )
+        return None
 
+    def compute_distance_matrix(self):
+        spots = [(0, 0)] + self.tourist_spot_positions
+        n = len(spots)
+        distance_matrix = np.zeros((n, n), dtype=int)
+        for i in range(n):
+            for j in range(n):
+                if i == j:
+                    distance_matrix[i][j] = 0
+                else:
+                    path = self.dfs_shortest_path(spots[i], spots[j])
+                    distance_matrix[i][j] = len(path) - 1 if path else 0
+        return distance_matrix, spots
 
-    def _calculate_heuristic(self, current_pos, bitmask):
-        max_distance = 0
-        for i in range(self.num_spots):
-            if not (bitmask & (1 << i)):
-                spot_pos = self.tourist_spot_positions[i]
-                distance = abs(current_pos[0] - spot_pos[0]) + abs(current_pos[1] - spot_pos[1])
-                if distance > max_distance:
-                    max_distance = distance
-        return max_distance
+   # # Tour iternatiary
+    def solve_tsp(self):
+        distance_matrix, spots = self.compute_distance_matrix()
+        n = len(spots) - 1  # number of tourist spots (excluding start)
+        if n == 0:
+            return []
 
+        dp = {}
+        dp[(0, 0)] = 0  # (current_node, mask) -> cost
 
+        for mask_size in range(0, n + 1):
+            for subset in combinations(range(1, n + 1), mask_size):
+                mask = 0
+                for bit in subset:
+                    mask |= 1 << (bit - 1)
+                for current_node in range(0, n + 1):
+                    if (current_node, mask) not in dp:
+                        continue
+                    current_cost = dp[(current_node, mask)]
+                    for next_spot in range(1, n + 1):
+                        if not (mask & (1 << (next_spot - 1))):
+                            new_mask = mask | (1 << (next_spot - 1))
+                            new_cost = current_cost + distance_matrix[current_node][next_spot]
+                            if (next_spot, new_mask) not in dp or new_cost < dp[(next_spot, new_mask)]:
+                                dp[(next_spot, new_mask)] = new_cost
+
+        full_mask = (1 << n) - 1
+        min_cost = float('inf')
+        best_end = -1
+        for end in range(1, n + 1):
+            if (end, full_mask) in dp and dp[(end, full_mask)] < min_cost:
+                min_cost = dp[(end, full_mask)]
+                best_end = end
+
+        if best_end == -1:
+            return None
+
+        path = []
+        current_node = best_end
+        current_mask = full_mask
+        path.append(current_node)
+
+        for _ in range(n):
+            prev_mask = current_mask ^ (1 << (current_node - 1))
+            min_prev_cost = float('inf')
+            prev_node = -1
+            for possible_prev in range(0, n + 1):
+                if possible_prev == 0 and prev_mask != 0:
+                    continue
+                if (possible_prev, prev_mask) in dp:
+                    cost = dp[(possible_prev, prev_mask)] + distance_matrix[possible_prev][current_node]
+                    if cost < min_prev_cost:
+                        min_prev_cost = cost
+                        prev_node = possible_prev
+            if prev_node == -1:
+                break
+            path.append(prev_node)
+            current_node = prev_node
+            current_mask = prev_mask
+
+        path = path[::-1]
+        order = [0] + path
+
+        full_path = []
+        for i in range(len(order) - 1):
+            from_spot = spots[order[i]]
+            to_spot = spots[order[i + 1]]
+            segment = self.dfs_shortest_path(from_spot, to_spot)
+            if i == 0:
+                full_path.extend(segment)
+            else:
+                full_path.extend(segment[1:])
+        return full_path
 
 if __name__ == "__main__":
     dubai = DubaiCityGrid(rows=10, cols=10)
@@ -217,33 +245,11 @@ if __name__ == "__main__":
     # dubai.save_map()
     # print(dubai.get_spot_list())
 
-    # Find routes using both sreach
-    print("\nFinding optimal route using A* search ...")
-    path_astar = dubai.find_optimal_route_astar()
-    if path_astar:
-        print("\nA* route found! Path coordinates:")
-        print(path_astar)  # Print the entire path as a list of tuples
-    else:
-        print("\nNo A* route found.")
-
-    print("\nFinding optimal route using DFS...")
-    path_dfs = dubai.find_optimal_route_dfs()
-    if path_dfs:
-        print("\nBFS route found! Path coordinates:")
-        print(path_dfs)  # Print the entire path as a list of tuples
-    else:
-        print("\nNo BFS route found.")
-
-    # Visualize the paths
-    if path_astar:
-        print("\nA* route length:", len(path_astar))
-        dubai.visualize_grid(path=path_astar, title="Dubai Tourist Map with A* Route")
+    print("\nFinding optimal route using TSP...")
+    path_tsp = dubai.solve_tsp()
+    if path_tsp:
+        print("\nTSP route length:", len(path_tsp))
+        dubai.visualize_grid(path=path_tsp, title="Dubai Tourist Map with Optimal TSP Route")
         plt.show()
-    if path_dfs:
-        print("\nBFS route length:", len(path_dfs))
-        dubai.visualize_grid(path=path_dfs, title="Dubai Tourist Map with BFS Route")
-        plt.show()
-
-
-
-
+    else:
+        print("\nNo TSP route found.")
